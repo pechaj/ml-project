@@ -10,7 +10,7 @@ def loadData(filename, block_num):
     """
     
     # Define the base path
-    base_path = f"datasets/CLAS_database/Participants/{filename}/by_block/"
+    base_path = f"datasets/CLAS_database/CLAS_database/CLAS/Participants/{filename}/by_block/"
 
     # Find the ECG file dynamically
     ecg_files = glob.glob(os.path.join(base_path, f"{block_num}_ecg_*.csv"))

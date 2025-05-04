@@ -1,6 +1,4 @@
-import pandas as pd
 import numpy as np
-import os
 from neurokit2 import ecg_process, eda_process
 
 def preprocessDataset(ecg_signal_full, eda_signal_full):

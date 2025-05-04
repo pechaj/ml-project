@@ -1,7 +1,7 @@
 from modules.PreprocessData import preprocessDataset
 from modules.ioPart import loadData, saveData
 from modules.CognitiveLoadDataset import CognitiveLoadDataset, GRUModel
-from modules.CognitiveLoadDataset import train_model, evaluate_model,load_data_from_folders
+import modules.CognitiveLoadDataset as cld
 import os
 import torch
 import torch.nn as nn
@@ -10,8 +10,8 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-low_load_dir = "datasets/CLAS_database/Low_load"
-high_load_dir = "datasets/CLAS_database/High_load"
+low_load_dir = "datasets/Low_load"
+high_load_dir = "datasets/High_load"
 
 torch.cuda.is_available()
 
@@ -39,32 +39,33 @@ else:
             saveData(eda_signal_filtered, "eda", low_load_dir, high_load_dir, filename, j)
 
 # Load dataset
-base_dir = "./datasets/CLAS_database"
+base_dir = "./datasets"
 print("Loading data from folders...")
-X, y = load_data_from_folders(base_dir)
+X, y = cld.load_data_from_folders(base_dir)
+cld.plot_ecg_eda_window(X, y, index=20)
 
-# Split data into train and test sets
-print("Splitting data into train and test sets...")
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# # Split data into train and test sets
+# print("Splitting data into train and test sets...")
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Create PyTorch dataloaders
-train_dataset = CognitiveLoadDataset(X_train, y_train)
-test_dataset = CognitiveLoadDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+# # Create PyTorch dataloaders
+# train_dataset = CognitiveLoadDataset(X_train, y_train)
+# test_dataset = CognitiveLoadDataset(X_test, y_test)
+# train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+# test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-# Initialize model, loss, and optimizer
-print("Initializing model...")
-input_size = 2
-hidden_size = 64
-output_size = 1
-model = GRUModel(input_size, hidden_size, output_size)
-criterion = nn.BCELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)    
+# # Initialize model, loss, and optimizer
+# print("Initializing model...")
+# input_size = 2
+# hidden_size = 64
+# output_size = 1
+# model = GRUModel(input_size, hidden_size, output_size)
+# criterion = nn.BCELoss()
+# optimizer = optim.Adam(model.parameters(), lr=0.001)    
 
-# Train the model
-print("Training model...")
-train_model(model, train_loader, criterion, optimizer)
+# # Train the model
+# print("Training model...")
+# cld.train_model(model, train_loader, criterion, optimizer)
 
-# Evaluate the model
-evaluate_model(model, test_loader)
+# # Evaluate the model
+# cld.evaluate_model(model, test_loader)

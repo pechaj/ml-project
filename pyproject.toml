@@ -5,6 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "neurokit2>=0.2.10",
+    "pandas>=2.2.3",
     "scikit-learn>=1.6.1",
     "torch>=2.6.0",
+    "tqdm>=4.67.1",
 ]

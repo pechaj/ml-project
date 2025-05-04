@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
@@ -64,6 +65,43 @@ def load_data_from_folders(base_dir):
     y = np.array(y)
     X = scaler.fit_transform(X.reshape(X.shape[0], -1)).reshape(X.shape)
     return X, y
+
+def plot_ecg_eda_window(X, y, index=0, sampling_rate=1000):
+    """
+    Vykreslí jedno okno EKG a EDA signálu z datasetu X.
+    
+    Parameters:
+    - X: NumPy array tvaru (n_samples, window_size * 2)
+    - y: Odpovídající labely
+    - index: Index okna, které chceš vykreslit
+    - sampling_rate: Vzorkovací frekvence (Hz)
+    """
+    sample = X[index]
+    window_size = sample.shape[0] // 2
+    
+    # Rozdělení EKG a EDA
+    ecg = sample[:window_size]
+    eda = sample[window_size:]
+    
+    time = np.linspace(0, window_size / sampling_rate, window_size)
+
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(2, 1, 1)
+    plt.plot(time, ecg, label='EKG', color='red')
+    plt.title(f'EKG signál (label: {y[index]})')
+    plt.ylabel('Amplituda')
+    plt.grid(True)
+
+    plt.subplot(2, 1, 2)
+    plt.plot(time, eda, label='EDA', color='blue')
+    plt.title(f'EDA signál (label: {y[index]})')
+    plt.xlabel('Čas (s)')
+    plt.ylabel('Amplituda')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
 # Define GRU model
 class GRUModel(nn.Module):
