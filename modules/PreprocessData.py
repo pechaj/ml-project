@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from neurokit2 import ecg_process, eda_phasic
+from neurokit2 import ecg_process, ecg_clean, eda_phasic
 
 def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
     
@@ -29,7 +29,7 @@ def preprocessSignalECG(signal, fs):
     
     try:
         # Try to process the ECG signal
-        ecg_signal_processed = ecg_process(ecg_signal_ecg, sampling_rate=fs)[0]["ECG_Clean"]
+        ecg_signal_processed = ecg_clean(ecg_signal_ecg, sampling_rate=fs)
     except Exception as e:
         print(f"Skipping ECG processing due to error: {e}")
         return None, None
@@ -43,7 +43,7 @@ def preprocessSignalEDA(signal, fs):
         return None, None
     
     try:
-        eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)
+        eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)["EDA_Phasic"]
     except Exception as e:
         print(f"Skipping EDA processing due to error: {e}")
         return None, None
