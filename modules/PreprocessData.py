@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from neurokit2 import ecg_process, eda_process
-from scipy.signal import resample
+from neurokit2 import ecg_process, eda_phasic
 
 def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
     
@@ -44,7 +43,7 @@ def preprocessSignalEDA(signal, fs):
         return None, None
     
     try:
-        eda_signal_processed = eda_process(eda_signal_eda, sampling_rate=fs)[0]["EDA_Phasic"]
+        eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)
     except Exception as e:
         print(f"Skipping EDA processing due to error: {e}")
         return None, None

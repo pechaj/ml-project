@@ -31,7 +31,7 @@ else:
                 continue
             
             ecg_signal_filtered, eda_signal_filtered = preprocessDataset(
-                ecg_signal, eda_signal
+                ecg_signal, eda_signal, 256
             )
             if ecg_signal_filtered is None or eda_signal_filtered is None:
                 continue
@@ -55,30 +55,6 @@ batch_size = 64
 
 # Split data into train and test sets
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-#X = X.transpose(0, 2, 1)
-# splits = get_splits(y, valid_size=0.2)
-# splits = (list(splits[0]), list(splits[1]))
-# tfms  = [None, [Categorize()]]
-# dsets = TSDatasets(X, y, splits=splits, inplace=True)
-# # learn = ts_learner(X, y, splits=splits, arch=RNN, arch_config=dict(rnn_type='GRU'))
-# print(type(dsets.train[0][0]), dsets.train[0][0].dtype)  # X sample
-# print(type(dsets.train[0][1]), dsets.train[0][1].dtype if hasattr(dsets.train[0][1], 'dtype') else type(dsets.train[0][1]))  # y sample
-# dls = TSDataLoaders.from_dsets(dsets.train, dsets.valid, bs=[64, 128], batch_tfms=[TSStandardize()], num_workers=0)
-# dls.show_batch(sharey=True)
-
-# arch_config = dict(
-#     rnn_type='GRU',
-#     hidden_size=64,
-#     n_layers=2,
-#     dropout=0.2,
-#     bidirectional=True
-# )
-
-# learn.fit_one_cycle(10, 1e-3)
-
-# learn.show_results()
-# learn.plot_metrics()
 
 # Create balanced data loaders
 class_counts = np.bincount(y)

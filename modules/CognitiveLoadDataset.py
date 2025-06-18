@@ -13,6 +13,7 @@ from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, balanced_accuracy_score
 
@@ -326,7 +327,7 @@ def check_prediction_distribution(model, data_loader, device='cpu'):
 
     with torch.no_grad():
         for X_batch, _ in data_loader:
-            X_batch = normalize_batch_signals(X_batch).to(device)
+            X_batch = preprocessing.normalize(X_batch)
             outputs = model(X_batch).squeeze()
             predicted = (outputs > 0.5).float()
             all_preds.extend(predicted.cpu().numpy())
@@ -345,7 +346,7 @@ def evaluate_model(model, test_loader, threshold=0.5):
     
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
-            X_batch = normalize_batch_signals(X_batch)
+            X_batch = preprocessing.normalize(X_batch)
             outputs = model(X_batch).squeeze()
             raw_outputs.extend(outputs.cpu().numpy())
             predicted = (outputs > threshold).float()
