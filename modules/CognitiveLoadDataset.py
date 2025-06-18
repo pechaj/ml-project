@@ -31,7 +31,6 @@ class CognitiveLoadDataset(Dataset):
 
 def load_data_from_folders(base_dir, balance_classes=True):
     X, y = [], []
-    scaler = StandardScaler()
     window_size = 256 * 20  # 30 seconds at 256 Hz
     step_size = window_size // 2  # 50% overlap
     windows = []
@@ -89,24 +88,9 @@ def load_data_from_folders(base_dir, balance_classes=True):
     # Convert list of DataFrames to a 3D numpy array
     X = np.stack([sample.values for sample in X])
     y = np.array(y)
-    X = scaler.fit_transform(X.reshape(X.shape[0], -1)).reshape(X.shape)
-    
-    # if balance_classes:
-    #     # Calculate class weights (inverse of frequency)
-    #     class_counts = np.bincount(y)
-    #     class_weights = 1. / class_counts
-    #     # Assign weight to each sample
-    #     sample_weights = class_weights[y]
-    #     print(f"Class weights for balancing: Class 0: {class_weights[0]:.4f}, Class 1: {class_weights[1]:.4f}")
-    #     return X, y, sample_weights, np.array(windows), indices
+    X = X.reshape(X.shape[0], -1).reshape(X.shape)
     
     return X, y
-
-def normalize_batch_signals(batch):
-    # Normalize each channel of each sample individually
-    mean = batch.mean(dim=1, keepdim=True)  # [batch, 1, channels]
-    std = batch.std(dim=1, keepdim=True) + 1e-6  # to avoid division by zero
-    return (batch - mean) / std
 
 def create_data_loaders(X, y, sample_weights=None, batch_size=32, test_split=0.2):
     """
@@ -288,7 +272,6 @@ def train_model(model, train_loader, criterion, optimizer, epochs=5):
         correct, total = 0, 0
         
         for X_batch, y_batch in epoch_iter:
-            X_batch = normalize_batch_signals(X_batch)
             y_batch = y_batch.view(-1).float()
             
             optimizer.zero_grad()
@@ -327,7 +310,6 @@ def check_prediction_distribution(model, data_loader, device='cpu'):
 
     with torch.no_grad():
         for X_batch, _ in data_loader:
-            X_batch = preprocessing.normalize(X_batch)
             outputs = model(X_batch).squeeze()
             predicted = (outputs > 0.5).float()
             all_preds.extend(predicted.cpu().numpy())
@@ -346,7 +328,6 @@ def evaluate_model(model, test_loader, threshold=0.5):
     
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
-            X_batch = preprocessing.normalize(X_batch)
             outputs = model(X_batch).squeeze()
             raw_outputs.extend(outputs.cpu().numpy())
             predicted = (outputs > threshold).float()
