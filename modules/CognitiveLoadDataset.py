@@ -10,10 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
-from sklearn.preprocessing import StandardScaler
-from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, f1_score, balanced_accuracy_score
 
@@ -88,7 +86,6 @@ def load_data_from_folders(base_dir, balance_classes=True):
     # Convert list of DataFrames to a 3D numpy array
     X = np.stack([sample.values for sample in X])
     y = np.array(y)
-    X = X.reshape(X.shape[0], -1).reshape(X.shape)
     
     return X, y
 
@@ -96,7 +93,7 @@ def create_data_loaders(X, y, sample_weights=None, batch_size=32, test_split=0.2
     """
     Create balanced data loaders using the sample weights
     """
-    from sklearn.model_selection import train_test_split
+
     
     # Split data into train and test sets
     X_train, X_test, y_train, y_test, idx_train, idx_test = train_test_split(

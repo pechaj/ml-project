@@ -51,7 +51,7 @@ input_size = 2
 hidden_size = 128
 output_size = 1
 learning_rate = 1e-3
-batch_size = 64
+batch_size = 32
 
 # Split data into train and test sets
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -88,25 +88,42 @@ plot_signal_windows(X, labels=y, class_to_plot=1, num_samples=5, title="EDA / EC
 # Plot 20 windows regardless of class
 plot_signal_windows(X, num_samples=20, title="Random Signal Windows")
 # Option 1: Train new model
-batch_x, batch_y = next(iter(train_loader))
-print(batch_x.shape, batch_y.shape)
+# batch_x, batch_y = next(iter(train_loader))
+# print(batch_x.shape, batch_y.shape)
 
-for i in range(4):
-    ecg = batch_x[i, :, 0].cpu().numpy()  # ECG signal
-    eda = batch_x[i, :, 1].cpu().numpy()  # EDA signal
-    label = batch_y[i].item()
+# # Training loop
+# for epoch in range(100):
+#     model.train()
+#     optimizer.zero_grad()
+    
+#     outputs = model(batch_x).squeeze(1)  # shape: (batch,)
+#     loss = criterion(outputs, batch_y)
+    
+#     loss.backward()
+#     optimizer.step()
 
-    plt.figure(figsize=(12, 4))
-    plt.subplot(2, 1, 1)
-    plt.plot(ecg, label='ECG')
-    plt.title(f"Sample {i} - Label: {label}")
-    plt.legend()
+#     # Metrics
+#     with torch.no_grad():
+#         preds = (torch.sigmoid(outputs) > 0.5).float()
+#         acc = (preds == batch_y).float().mean().item()
+#         print(f"Epoch {epoch+1}: Loss={loss.item():.4f}, Acc={acc*100:.2f}%")
+        
+# for i in range(4):
+#     ecg = batch_x[i, :, 0].cpu().numpy()  # ECG signal
+#     eda = batch_x[i, :, 1].cpu().numpy()  # EDA signal
+#     label = batch_y[i].item()
 
-    plt.subplot(2, 1, 2)
-    plt.plot(eda, label='EDA', color='orange')
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+#     plt.figure(figsize=(12, 4))
+#     plt.subplot(2, 1, 1)
+#     plt.plot(ecg, label='ECG')
+#     plt.title(f"Sample {i} - Label: {label}")
+#     plt.legend()
+
+#     plt.subplot(2, 1, 2)
+#     plt.plot(eda, label='EDA', color='orange')
+#     plt.legend()
+#     plt.tight_layout()
+#     plt.show()
 
 cld.train_model(model, train_loader, criterion, optimizer, epochs=10)
 cld.save_model(model, model_path)
