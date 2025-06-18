@@ -1,32 +1,32 @@
 import numpy as np
+import pandas as pd
+import random
 from neurokit2 import ecg_process, eda_process
+from scipy.signal import resample
 
-def preprocessDataset(ecg_signal_full, eda_signal_full):
+def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
     
     # Extract ECG signal and remove NaN values
     ecg_signal_full = ecg_signal_full.dropna()
     eda_signal_full = eda_signal_full.dropna()
     
-    time, ecg_signal_filtered = preprocessSignalECG(ecg_signal_full)
-    eda_signal_filtered = preprocessSignalEDA(eda_signal_full)
+    ecg_signal_filtered = preprocessSignalECG(ecg_signal_full, fs)
+    eda_signal_filtered = preprocessSignalEDA(eda_signal_full, fs)
     
-    return time, ecg_signal_filtered, eda_signal_filtered
+    return ecg_signal_filtered, eda_signal_filtered
     
-def preprocessSignalECG(signal):
-        
-    fs = 256  # Sampling frequency
-
-    ecg_signal_ecg = signal["ecg2"][:].astype(float).values 
-
+def preprocessSignalECG(signal, fs):
+    
     if "ecg2" not in signal.columns:
-        raise ValueError("Column 'ecg2' not found in the dataset.")
+            raise ValueError("Column 'ecg2' not found in the dataset.")
+        
+    ecg_signal_ecg = signal["ecg2"][:].astype(float).values 
     
-    # print(f"ECG Signal Length: {len(ecg_signal_ecg)}")
-    # print("First 10 values:", ecg_signal_ecg[:10])  # See if values look correct
     if len(ecg_signal_ecg) < 1024:
+        print("ECG signal is too short, skipping processing.")
         return None, None
     
-    ecg_signal_time = np.arange(0, len(ecg_signal_ecg)) / fs
+    # ecg_signal_time = np.arange(0, len(ecg_signal_ecg)) / fs
     
     try:
         # Try to process the ECG signal
@@ -35,13 +35,9 @@ def preprocessSignalECG(signal):
         print(f"Skipping ECG processing due to error: {e}")
         return None, None
     
+    return ecg_signal_processed
 
-    
-    return ecg_signal_time, ecg_signal_processed
-
-def preprocessSignalEDA(signal):
-        
-    fs = 256  # Sampling frequency
+def preprocessSignalEDA(signal, fs):
     eda_signal_eda = signal["gsr"][:].astype(float).values 
     
     if len(eda_signal_eda) < 1024:
