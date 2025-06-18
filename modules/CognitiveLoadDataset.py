@@ -170,6 +170,7 @@ class GRUModel(nn.Module):
 
         # Update the input size of the fully connected layer
         direction_factor = 2 if bidirectional else 1
+        self.layer_norm = nn.LayerNorm(hidden_size * direction_factor)
         self.fc1 = nn.Linear(hidden_size * direction_factor, 64)
         self.dropout = nn.Dropout(0.3)
         self.fc2 = nn.Linear(64, 1)
@@ -179,6 +180,7 @@ class GRUModel(nn.Module):
     def forward(self, x):
         # print(x)
         gru_out, _ = self.gru(x)  # (batch, seq_len, hidden*dir)
+        gru_out = self.layer_norm(gru_out)
         last_hidden = gru_out[:, -1, :]  # get last time step
         x = F.relu(self.fc1(last_hidden))
         x = self.dropout(x)
