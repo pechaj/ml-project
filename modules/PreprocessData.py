@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from neurokit2 import ecg_process, ecg_clean, eda_phasic
+from neurokit2 import ecg_clean, eda_phasic
 
 def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
     
@@ -34,6 +34,8 @@ def preprocessSignalECG(signal, fs):
         print(f"Skipping ECG processing due to error: {e}")
         return None, None
     
+    ecg_signal_processed = normalize_signal(ecg_signal_processed)
+    
     return ecg_signal_processed
 
 def preprocessSignalEDA(signal, fs):
@@ -48,5 +50,14 @@ def preprocessSignalEDA(signal, fs):
         print(f"Skipping EDA processing due to error: {e}")
         return None, None
     
+    eda_signal_processed = normalize_signal(eda_signal_processed)
     
     return eda_signal_processed
+
+def normalize_signal(signal):
+    # Min-max normalization to [-1, 1]
+    min_val = signal.min()
+    max_val = signal.max()
+    normalized = (signal - min_val) / (max_val - min_val + 1e-8)
+    normalized * 2 - 1 # Normalize to [-1, 1] range
+    return normalized
