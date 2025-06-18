@@ -45,7 +45,7 @@ def preprocessSignalEDA(signal, fs):
         return None, None
     
     try:
-        eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)["EDA_Phasic"]
+        eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)["EDA_Phasic"].to_numpy()
     except Exception as e:
         print(f"Skipping EDA processing due to error: {e}")
         return None, None
@@ -56,8 +56,5 @@ def preprocessSignalEDA(signal, fs):
 
 def normalize_signal(signal):
     # Min-max normalization to [-1, 1]
-    min_val = signal.min()
-    max_val = signal.max()
-    normalized = (signal - min_val) / (max_val - min_val + 1e-8)
-    normalized * 2 - 1 # Normalize to [-1, 1] range
-    return normalized
+    signal_normalized = 2 * (signal - np.min(signal)) / (np.max(signal) - np.min(signal)) - 1
+    return signal_normalized

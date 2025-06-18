@@ -1,6 +1,6 @@
 from modules.PreprocessData import preprocessDataset
 from modules.ioPart import loadData, saveData
-from modules.CognitiveLoadDataset import GRUModel, create_data_loaders, CNN_BiGRU_Model, browse_windows, plot_signal_windows, normalize_batch_signals
+from modules.CognitiveLoadDataset import GRUModel, create_data_loaders, CNN_BiGRU_Model, browse_windows, plot_signal_windows
 import modules.CognitiveLoadDataset as cld
 import os
 import torch
@@ -44,11 +44,11 @@ base_dir = "./datasets"
 print("Loading data from folders...")
 # Enable class balancing at the dataset level
 X, y = cld.load_data_from_folders(base_dir, balance_classes=True)
-cld.plot_ecg_eda_window(X, y, 2805, 256)
+cld.plot_ecg_eda_window(X, y, 2806, 256)
 
 # Define model hyperparameters
 input_size = 2
-hidden_size = 64
+hidden_size = 128
 output_size = 1
 learning_rate = 1e-3
 batch_size = 64
