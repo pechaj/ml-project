@@ -198,56 +198,37 @@ class GRUModel(nn.Module):
                 elif 'bias' in name:
                     nn.init.zeros_(param)
 
-class CNN_BiGRU_Model(nn.Module):
-    def __init__(self, input_length=1280, num_classes=1):
-        super(CNN_BiGRU_Model, self).__init__()
+class CNNStressClassifier(nn.Module):
+    def __init__(self, input_channels=2, num_classes=2):
+        super(CNNStressClassifier, self).__init__()
 
-        # CNN feature extractor
-        self.cnn = nn.Sequential(
-            nn.Conv1d(1, 30, kernel_size=5, stride=1, padding=2),  # output: (30, 1280)
-            nn.ReLU(),
-            nn.MaxPool1d(2),  # (30, 640)
+        self.conv1 = nn.Conv1d(input_channels, 32, kernel_size=7, padding=3)
+        self.bn1 = nn.BatchNorm1d(32)
+        
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        
+        self.conv3 = nn.Conv1d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm1d(128)
 
-            nn.Conv1d(30, 30, kernel_size=5, stride=1, padding=2),  # (30, 640)
-            nn.ReLU(),
-            nn.MaxPool1d(2),  # (30, 320)
+        self.global_pool = nn.AdaptiveAvgPool1d(1)  # Výstup: (batch_size, 128, 1)
 
-            nn.Conv1d(30, 60, kernel_size=3, stride=1, padding=1),  # (60, 320)
-            nn.ReLU(),
-            nn.MaxPool1d(2),  # (60, 160)
-
-            nn.Conv1d(60, 60, kernel_size=3, stride=1, padding=1),  # (60, 160)
-            nn.ReLU(),
-            nn.MaxPool1d(2)   # (60, 80)
-        )
-
-        # BiGRU (input size matches CNN output channels)
-        self.bigru = nn.GRU(
-            input_size=60,
-            hidden_size=64,
-            num_layers=1,
-            batch_first=True,
-            bidirectional=True
-        )
-
-        # Final classifier
-        self.classifier = nn.Sequential(
-            nn.Linear(64 * 2, 40),  # BiGRU hidden size * 2
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(40, num_classes)  # Output: 1 for binary classification
-        )
+        self.fc1 = nn.Linear(128, 64)
+        self.dropout = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
-        # x: [batch_size, 1, 1280]
-        x = self.cnn(x)  # Output: [batch_size, 60, 80]
-        x = x.permute(0, 2, 1)  # [batch_size, 80, 60] -> sequence_len=80
+        # x shape: (batch_size, channels=2, sequence_length)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
 
-        # GRU expects (batch, seq_len, feature_dim)
-        gru_out, _ = self.bigru(x)  # Output: [batch_size, 80, 128]
-        last_step = gru_out[:, -1, :]  # Take last time step
-        out = self.classifier(last_step)
-        return out  # BCEWithLogitsLoss expects raw logits
+        x = self.global_pool(x)        # shape: (batch, 128, 1)
+        x = x.squeeze(-1)              # shape: (batch, 128)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
 
 
 # Training loop
