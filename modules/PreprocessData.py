@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import random
 from neurokit2 import ecg_clean, eda_phasic
+from matplotlib import pyplot as plt
 
 def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
     
@@ -36,6 +37,26 @@ def preprocessSignalECG(signal, fs):
     
     ecg_signal_processed = normalize_signal(ecg_signal_processed)
     
+    # # Vykresli oba signály
+    # plt.figure(figsize=(14, 5))
+
+    # # Původní signál
+    # plt.subplot(1, 2, 1)
+    # plt.plot(ecg_signal_ecg, color='blue')
+    # plt.title('Původní EDA signál')
+    # plt.xlabel('Vzorky')
+    # plt.ylabel('Amplituda')
+
+    # # Normalizovaný signál
+    # plt.subplot(1, 2, 2)
+    # plt.plot(ecg_signal_processed, color='green')
+    # plt.title('Normalizovaný EDA signál (-1 až 1)')
+    # plt.xlabel('Vzorky')
+    # plt.ylabel('Amplituda')
+
+    # plt.tight_layout()
+    # plt.show()
+    
     return ecg_signal_processed
 
 def preprocessSignalEDA(signal, fs):
@@ -51,6 +72,27 @@ def preprocessSignalEDA(signal, fs):
         return None, None
     
     eda_signal_processed = normalize_signal(eda_signal_processed)
+
+    # # Vykresli oba signály
+    # plt.figure(figsize=(14, 5))
+
+    # # Původní signál
+    # plt.subplot(1, 2, 1)
+    # plt.plot(eda_signal_eda, color='blue')
+    # plt.title('Původní EDA signál')
+    # plt.xlabel('Vzorky')
+    # plt.ylabel('Amplituda')
+
+    # # Normalizovaný signál
+    # plt.subplot(1, 2, 2)
+    # plt.plot(eda_signal_processed, color='green')
+    # plt.title('Normalizovaný EDA signál (-1 až 1)')
+    # plt.xlabel('Vzorky')
+    # plt.ylabel('Amplituda')
+
+    # plt.tight_layout()
+    # plt.show()
+
     
     return eda_signal_processed
 
