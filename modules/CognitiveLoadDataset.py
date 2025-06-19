@@ -219,6 +219,7 @@ class CNNStressClassifier(nn.Module):
 
     def forward(self, x):
         # x shape: (batch_size, channels=2, sequence_length)
+        x = x.permute(0, 2, 1)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
