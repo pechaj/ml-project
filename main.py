@@ -1,6 +1,6 @@
 from modules.PreprocessData import preprocessDataset
 from modules.ioPart import loadData, saveData
-from modules.CognitiveLoadDataset import GRUModel, create_data_loaders, CNN_BiGRU_Model, browse_windows, plot_signal_windows
+from modules.CognitiveLoadDataset import GRUModel, create_data_loaders, CNNStressClassifier, browse_windows, plot_signal_windows
 import modules.CognitiveLoadDataset as cld
 import os
 import torch

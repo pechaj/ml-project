@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
-from neurokit2 import ecg_clean, eda_phasic
+from neurokit2 import ecg_clean, eda_phasic, eda_clean
 from matplotlib import pyplot as plt
 
 def preprocessDataset(ecg_signal_full, eda_signal_full, fs):
@@ -66,6 +66,7 @@ def preprocessSignalEDA(signal, fs):
         return None, None
     
     try:
+        eda_signal_eda = eda_clean(eda_signal_eda, sampling_rate=fs)
         eda_signal_processed = eda_phasic(eda_signal_eda, sampling_rate=fs)["EDA_Phasic"].to_numpy()
     except Exception as e:
         print(f"Skipping EDA processing due to error: {e}")
