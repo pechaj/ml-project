@@ -29,7 +29,7 @@ class CognitiveLoadDataset(Dataset):
 
 def load_data_from_folders(base_dir, balance_classes=True):
     X, y = [], []
-    window_size = 256 * 20  # 30 seconds at 256 Hz
+    window_size = 256 * 20  # 20 seconds at 256 Hz
     step_size = window_size // 2  # 50% overlap
     windows = []
     indices = []
