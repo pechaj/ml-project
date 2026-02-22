@@ -1,7 +1,7 @@
 from modules.preprocess_module import preprocessDataset
 from modules.load_save_module import loadData, saveData
 import os
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 low_load_dir = "datasets/Low_load"
 high_load_dir = "datasets/High_load"
