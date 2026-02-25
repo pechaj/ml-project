@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from torch.utils.data import DataLoader
 
 from modules.gru_model import EnhancedGRUModel, load_model
-from modules.cognitive_load_dataset_infer import CognitiveLoadDataset, load_data_subject_split
+from modules.cognitive_load_dataset_infer import CognitiveLoadDataset, evaluate_random_subset, load_data_subject_split
 from modules.plot import create_interactive_slider_viz
 
 def set_seed(seed=42):
@@ -123,7 +123,7 @@ def plot_signal_with_shap(
     
 if "__main__" == __name__:
     set_seed(43)
-    model_path = "models/final_model_75.pth"
+    model_path = "models/final_model_.pth"
 
     input_size = 2  # ECG and EDA channels
     hidden_size = 128
@@ -152,6 +152,8 @@ if "__main__" == __name__:
     test_dataset = CognitiveLoadDataset(X_all, y_all)
 
     test_loader = DataLoader(test_dataset, batch_size=64)
+    
+    evaluate_random_subset(loaded_model, test_dataset, n_samples=200)
 """
     y_true, y_pred, y_prob = loaded_model.predict(test_loader, device="cpu")
 

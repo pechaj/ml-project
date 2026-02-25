@@ -2,8 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.signal import resample_poly
+from sklearn.metrics import classification_report, accuracy_score
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 class CognitiveLoadDataset(Dataset):
     def __init__(self, X: np.ndarray, y: np.ndarray):
@@ -100,12 +101,31 @@ def downsample_signal(signal, orig_fs, target_fs):
 
     return resample_poly(signal, up, down)
 
-def get_subjects_data(X, y, groups, target_subjects):
-    """
-    X: numpy array (okna, délka, kanály)
-    y: numpy array (labely)
-    groups: numpy array (subject_ids)
-    target_subjects: list ID subjektů, které chceme (např. ['S01', 'S05'])
-    """
-    mask = np.isin(groups, target_subjects)
-    return X[mask], y[mask], groups[mask]
+def evaluate_random_subset(model, dataset, n_samples=200, threshold=0.6, device='cuda' if torch.cuda.is_available() else 'cpu'):
+    num_total = len(dataset)
+    indices = np.random.choice(num_total, min(n_samples, num_total), replace=False)
+    
+    subset = Subset(dataset, indices) # type: ignore
+    subset_loader = DataLoader(subset, batch_size=32, shuffle=False)
+    
+    model.to(device)
+    model.eval()
+    
+    all_true, all_preds = [], []
+    
+    with torch.no_grad():
+        for X_batch, y_batch in subset_loader:
+            X_batch = X_batch.to(device)
+            
+            outputs = model(X_batch).view(-1)
+            probs = torch.sigmoid(outputs)
+            preds = (probs >= threshold).float()
+            
+            all_true.extend(y_batch.numpy())
+            all_preds.extend(preds.cpu().numpy())
+            
+    print(f"\n✨ RYCHLÁ STATISTIKA ({n_samples} náhodných oken) ✨")
+    print(f"{'='*40}")
+    print(f"Accuracy: {accuracy_score(all_true, all_preds):.2%}")
+    print(f"{'='*40}")
+    print(classification_report(all_true, all_preds, target_names=["Low", "High"]))
