@@ -6,6 +6,9 @@ import os
 low_load_dir = "datasets/Low_load"
 high_load_dir = "datasets/High_load"
 
+low_load_raw_dir = "datasets/Raw/Low_load"
+high_load_raw_dir = "datasets/Raw/High_load"
+
 # Ensure destination directories exist else preprocess the dataset
 if os.path.exists(low_load_dir) and os.path.exists(high_load_dir):
     print("Directories already exist, no need to preprocess.")
@@ -13,6 +16,8 @@ if os.path.exists(low_load_dir) and os.path.exists(high_load_dir):
 else:
     os.makedirs(low_load_dir, exist_ok=True)
     os.makedirs(high_load_dir, exist_ok=True)
+    os.makedirs(low_load_raw_dir, exist_ok=True)
+    os.makedirs(high_load_raw_dir, exist_ok=True)
     
     # Create the directories
     for i in range(1, 61):
@@ -23,7 +28,7 @@ else:
             if ecg_signal is None or eda_signal is None:
                 continue
 
-            ecg_signal_filtered, eda_signal_filtered = preprocessDataset(
+            ecg_signal_filtered, eda_signal_filtered, ecg_signal_raw, eda_signal_raw = preprocessDataset(
                 ecg_signal, eda_signal, 256
             )
             
@@ -44,9 +49,15 @@ else:
             saveData(
                 ecg_signal_filtered, "ecg", low_load_dir, high_load_dir, filename, j
             )
+            saveData(
+                ecg_signal_raw, "ecg", low_load_raw_dir, high_load_raw_dir, filename, j
+            )
             
             saveData(
                 eda_signal_filtered, "eda", low_load_dir, high_load_dir, filename, j
+            )
+            saveData(
+                eda_signal_raw, "eda", low_load_raw_dir, high_load_raw_dir, filename, j
             )
 
 """ # Load dataset

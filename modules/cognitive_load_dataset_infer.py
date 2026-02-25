@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from scipy.signal import resample_poly
 import torch
 from torch.utils.data import Dataset
@@ -18,24 +17,20 @@ class CognitiveLoadDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-def load_data_subject_split(base_dir, test_size=0.2, random_state=42):
+def load_data_subject_split(base_dir):
     """
     Loads ECG and EDA data.
     Splits dataset on SUBJECT level to avoid leakage.
     Then creates 50% overlapping windows.
+    Returns also groups (subject_id) for LOSO.
     """
     target_fs = 128
-
     window_size = target_fs * 20
     step_size = window_size // 2
-
     all_recordings = []
 
     print(f"🚀 Načítám data z: {base_dir}")
 
-    # -------------------------
-    # 1️⃣ Nejprve načteme metadata o všech subjektech
-    # -------------------------
     for label, class_name in enumerate(["Low_load", "High_load"]):
         class_dir = os.path.join(base_dir, class_name)
         if not os.path.exists(class_dir):
@@ -61,82 +56,56 @@ def load_data_subject_split(base_dir, test_size=0.2, random_state=42):
 
         for subject_key, data in recordings.items():
             if 'ecg' in data["signals"] and 'eda' in data["signals"]:
-                all_recordings.append((subject_key, data["signals"], data["label"]))
+              subject_id = subject_key.split('_')[0]
+              all_recordings.append((subject_id, data["signals"], data["label"]))
 
-    print(f"📊 Celkem subjektů/záznamů: {len(all_recordings)}")
+    num_of_subjects = np.unique([rec[0] for rec in all_recordings])
 
-    # -------------------------
-    # 2️⃣ Split na úrovni subjektu
-    # -------------------------
-    subject_ids = [rec[0] for rec in all_recordings]
-    labels = [rec[2] for rec in all_recordings]
+    print(f"📊 Celkem subjektů: {len(num_of_subjects)}")
+    print(f"📊 Celkem bloků: {len(all_recordings)}")
 
-    train_ids, test_ids = train_test_split(
-        subject_ids,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=labels
-    )
-
-    print(f"✂️ Train subjektů: {len(train_ids)} | Test subjektů: {len(test_ids)}")
-
-    # -------------------------
-    # 3️⃣ Funkce pro tvorbu oken
-    # -------------------------
     def create_windows(recordings_subset):
         X, y, groups = [], [], []
-
-        for subject_key, signals, label in recordings_subset:
-
+        for subject_id, signals, label in recordings_subset:
             ecg = signals['ecg']
             eda = signals['eda']
 
             orig_fs = 256
 
-            initial_min_len = min(len(ecg), len(eda))
-            ecg_data_orig = ecg.iloc[:initial_min_len, 0].values
-            eda_data_orig = eda.iloc[:initial_min_len, 0].values
-
-            # Downsampling
-            ecg_data_ds = downsample_signal(ecg_data_orig, orig_fs, target_fs)
-            eda_data_ds = downsample_signal(eda_data_orig, orig_fs, target_fs)
-
+            min_len = min(len(ecg), len(eda))
+            ecg_data_ds = downsample_signal(ecg.iloc[:min_len, 0].values, orig_fs, target_fs)
+            eda_data_ds = downsample_signal(eda.iloc[:min_len, 0].values, orig_fs, target_fs)
             final_min_len = min(len(ecg_data_ds), len(eda_data_ds))
-            ecg_data = ecg_data_ds[:final_min_len]
-            eda_data = eda_data_ds[:final_min_len]
 
             for start in range(0, final_min_len - window_size + 1, step_size):
-                ecg_w = ecg_data[start:start + window_size]
-                eda_w = eda_data[start:start + window_size]
-
+                ecg_w = ecg_data_ds[start:start + window_size]
+                eda_w = eda_data_ds[start:start + window_size]
                 combined = np.stack([ecg_w, eda_w], axis=1)
-
                 X.append(combined)
                 y.append(label)
-                groups.append(subject_key)  # <- přidáno
+                groups.append(subject_id)
 
-        return np.array(X), np.array(y), groups
+        return np.array(X), np.array(y), np.array(groups)
 
-    # -------------------------
-    # 4️⃣ Vytvoření train/test
-    # -------------------------
-    train_recordings = [rec for rec in all_recordings if rec[0] in train_ids]
-    test_recordings = [rec for rec in all_recordings if rec[0] in test_ids]
+    X, y, groups = create_windows(all_recordings)
 
-    X_train, y_train, groups_train = create_windows(train_recordings)
-    X_test, y_test, groups_test = create_windows(test_recordings)
+    print(f"X type: {type(X)}, X shape: {getattr(X, 'shape', None)}")
 
-    print(f"\n📐 Train shape: {X_train.shape}")
-    print(f"📐 Test shape:  {X_test.shape}")
-
-    return X_train, X_test, y_train, y_test, groups_train, groups_test
+    return X, y, groups
 
 def downsample_signal(signal, orig_fs, target_fs):
-    if orig_fs == target_fs:
-        return signal
-
     gcd = np.gcd(orig_fs, target_fs)
     up = target_fs // gcd
     down = orig_fs // gcd
 
     return resample_poly(signal, up, down)
+
+def get_subjects_data(X, y, groups, target_subjects):
+    """
+    X: numpy array (okna, délka, kanály)
+    y: numpy array (labely)
+    groups: numpy array (subject_ids)
+    target_subjects: list ID subjektů, které chceme (např. ['S01', 'S05'])
+    """
+    mask = np.isin(groups, target_subjects)
+    return X[mask], y[mask], groups[mask]
