@@ -8,8 +8,8 @@ import plotly.graph_objects as go
 from torch.utils.data import DataLoader
 
 from modules.gru_model import EnhancedGRUModel, load_model
-from modules.cognitive_load_dataset_infer import CognitiveLoadDataset, evaluate_random_subset, load_data_subject_split
-from modules.plot import create_interactive_slider_viz
+from modules.cognitive_load_dataset_infer import CognitiveLoadDataset, evaluate_random_subset, load_data_subject_split, random_subject_windows
+from modules.plot import create_prediction_viz
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -122,8 +122,8 @@ def plot_signal_with_shap(
 
     
 if "__main__" == __name__:
-    set_seed(43)
-    model_path = "models/final_model_.pth"
+    set_seed(41)
+    model_path = "models/final_model_86.pth"
 
     input_size = 2  # ECG and EDA channels
     hidden_size = 128
@@ -147,13 +147,15 @@ if "__main__" == __name__:
 
     X_all, y_all, groups_all = load_data_subject_split("datasets")
     
-    create_interactive_slider_viz(X_all, y_all, groups_all, loaded_model, n_random_subjects=5)
+    viz_data = random_subject_windows("datasets", n_subjects=5)
+    create_prediction_viz(viz_data, loaded_model)
     
     test_dataset = CognitiveLoadDataset(X_all, y_all)
 
     test_loader = DataLoader(test_dataset, batch_size=64)
     
-    evaluate_random_subset(loaded_model, test_dataset, n_samples=200)
+    evaluate_random_subset(loaded_model, test_dataset, n_samples=400)
+
 """
     y_true, y_pred, y_prob = loaded_model.predict(test_loader, device="cpu")
 

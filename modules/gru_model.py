@@ -57,6 +57,8 @@ class EnhancedGRUModel(nn.Module):
         )
 
     def forward(self, x):
+        if x.dim() == 4 and x.shape[-1] == 1:
+            x = x.squeeze(-1)
         x = x.transpose(1, 2)
 
         x = self.cnn(x)

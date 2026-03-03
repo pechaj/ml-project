@@ -1,4 +1,5 @@
 import os
+import random
 import numpy as np
 import pandas as pd
 from scipy.signal import resample_poly
@@ -18,7 +19,7 @@ class CognitiveLoadDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-def load_data_subject_split(base_dir):
+def load_data_subject_split(base_dir, target_fs=128):
     """
     Loads ECG and EDA data.
     Splits dataset on SUBJECT level to avoid leakage.
@@ -26,6 +27,7 @@ def load_data_subject_split(base_dir):
     Returns also groups (subject_id) for LOSO.
     """
     target_fs = 128
+    orig_fs = 256
     window_size = target_fs * 20
     step_size = window_size // 2
     all_recordings = []
@@ -68,29 +70,27 @@ def load_data_subject_split(base_dir):
     def create_windows(recordings_subset):
         X, y, groups = [], [], []
         for subject_id, signals, label in recordings_subset:
-            ecg = signals['ecg']
-            eda = signals['eda']
+            ecg = signals['ecg'].iloc[:, 0].values.astype(np.float32)
+            eda = signals['eda'].iloc[:, 0].values.astype(np.float32)
 
-            orig_fs = 256
+            ecg_ds = downsample_signal(ecg, orig_fs, target_fs)
+            eda_ds = downsample_signal(eda, orig_fs, target_fs)
 
-            min_len = min(len(ecg), len(eda))
-            ecg_data_ds = downsample_signal(ecg.iloc[:min_len, 0].values, orig_fs, target_fs)
-            eda_data_ds = downsample_signal(eda.iloc[:min_len, 0].values, orig_fs, target_fs)
-            final_min_len = min(len(ecg_data_ds), len(eda_data_ds))
+            final_min_len = min(len(ecg_ds), len(eda_ds))
 
             for start in range(0, final_min_len - window_size + 1, step_size):
-                ecg_w = ecg_data_ds[start:start + window_size]
-                eda_w = eda_data_ds[start:start + window_size]
+                ecg_w = ecg_ds[start : start + window_size]
+                eda_w = eda_ds[start : start + window_size]
+                
                 combined = np.stack([ecg_w, eda_w], axis=1)
                 X.append(combined)
                 y.append(label)
                 groups.append(subject_id)
+        
 
         return np.array(X), np.array(y), np.array(groups)
 
     X, y, groups = create_windows(all_recordings)
-
-    print(f"X type: {type(X)}, X shape: {getattr(X, 'shape', None)}")
 
     return X, y, groups
 
@@ -129,3 +129,73 @@ def evaluate_random_subset(model, dataset, n_samples=200, threshold=0.6, device=
     print(f"Accuracy: {accuracy_score(all_true, all_preds):.2%}")
     print(f"{'='*40}")
     print(classification_report(all_true, all_preds, target_names=["Low", "High"]))
+    
+def random_subject_windows(base_dir, n_subjects=3, target_fs=128):
+    orig_fs = 256
+    window_size = target_fs * 20
+    step_size = window_size // 2
+    
+    # Cesta k surovým datům
+    raw_base_dir = os.path.join(base_dir, "Raw")
+    
+    # Najdeme dostupné subjekty v normalizovaných složkách
+    low_files = os.listdir(os.path.join(base_dir, "Low_load"))
+    high_files = os.listdir(os.path.join(base_dir, "High_load"))
+    all_subjects = sorted(list(set([f.split('_')[0] for f in low_files + high_files if '_' in f])))
+    
+    selected_sids = random.sample(all_subjects, min(n_subjects, len(all_subjects)))
+    viz_data = []
+
+    for sid in selected_sids:
+        # 1. Náhodný výběr třídy (pro model/okna)
+        label = random.choice([0, 1])
+        class_name = "Low_load" if label == 0 else "High_load"
+        norm_class_dir = os.path.join(base_dir, class_name)
+        
+        # Najdeme soubor v normalizované složce
+        subject_files = [f for f in os.listdir(norm_class_dir) if f.startswith(sid) and 'ecg' in f.lower()]
+        if not subject_files:
+            continue
+        
+        ecg_file_name = random.choice(subject_files)
+        eda_file_name = ecg_file_name.replace('ecg', 'eda').replace('ECG', 'EDA')
+
+        # 2. NAČTENÍ NORMALIZOVANÝCH DAT (pro model)
+        ecg_norm = pd.read_csv(os.path.join(norm_class_dir, ecg_file_name)).iloc[:, 0].values
+        eda_norm = pd.read_csv(os.path.join(norm_class_dir, eda_file_name)).iloc[:, 0].values
+        
+        # 3. NAČTENÍ RAW DAT (pro graf)
+        raw_class_dir = os.path.join(raw_base_dir, class_name)
+        ecg_raw = pd.read_csv(os.path.join(raw_class_dir, ecg_file_name)).iloc[:, 0].values
+        eda_raw = pd.read_csv(os.path.join(raw_class_dir, eda_file_name)).iloc[:, 0].values
+
+        # 4. DOWNSAMPLING (provádíme na obou sadách stejně, aby seděl čas)
+        # Modelová data (znormalizovaná)
+        ecg_norm_ds = downsample_signal(ecg_norm, orig_fs, target_fs)
+        eda_norm_ds = downsample_signal(eda_norm, orig_fs, target_fs)
+        
+        # Vizualizační data (surová)
+        ecg_raw_ds = downsample_signal(ecg_raw, orig_fs, target_fs)
+        eda_raw_ds = downsample_signal(eda_raw, orig_fs, target_fs)
+        
+        # Sjednocení délek
+        min_l = min(len(ecg_norm_ds), len(ecg_raw_ds), len(eda_norm_ds), len(eda_raw_ds))
+        ecg_n, eda_n = ecg_norm_ds[:min_l], eda_norm_ds[:min_l]
+        ecg_r, eda_r = ecg_raw_ds[:min_l], eda_raw_ds[:min_l]
+
+        # 5. TVORBA OKEN PRO MODEL (z normalizovaných dat)
+        X_windows = []
+        for start in range(0, min_l - window_size + 1, step_size):
+            win = np.stack([ecg_n[start:start+window_size], 
+                            eda_n[start:start+window_size]], axis=1)
+            X_windows.append(win)
+        
+        viz_data.append({
+            'subject_id': sid,
+            'label': label,
+            'full_ecg': ecg_r,  # Do grafu jdou RAW data
+            'full_eda': eda_r,  # Do grafu jdou RAW data
+            'X_windows': np.array(X_windows) # Do modelu jdou NORMALIZOVANÁ okna
+        })
+        
+    return viz_data
