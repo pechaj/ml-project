@@ -1,3 +1,4 @@
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
@@ -103,4 +104,91 @@ def create_prediction_viz(viz_data, model, device="cuda" if torch.cuda.is_availa
         for i in range(s, s+m): 
             fig.data[i].visible = True
 
+    fig.show()
+    
+def plot_signal_with_shap(
+    X_sample: np.ndarray, shap_vals: np.ndarray, title="SHAP Interpretace"
+):
+    shap_vals = np.squeeze(shap_vals)
+    if len(X_sample.shape) == 3:
+        X_sample = X_sample[0]
+
+    channels = ["EKG", "EDA"]
+
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.1,
+        subplot_titles=[f"{ch} - Důležitost úseků" for ch in channels],
+    )
+
+    for i in range(2):
+        sig = X_sample[:, i]
+        s_val = shap_vals[:, i]
+
+        window_size = 30 if i == 0 else 100
+
+        s_val_smoothed = (
+            pd.Series(s_val)
+            .rolling(window=window_size, center=True)
+            .mean()
+            .fillna(0)
+            .values
+        )
+
+        x_axis = np.arange(len(sig))
+        v_limit = np.percentile(np.abs(s_val_smoothed), 99.5)
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=sig,
+                mode="lines",
+                line=dict(color="rgba(150, 150, 150, 0.5)", width=1),
+                hoverinfo="skip",
+                showlegend=False,
+            ),
+            row=i + 1,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=sig,
+                mode="markers",
+                marker=dict(
+                    size=6,
+                    color=s_val_smoothed,
+                    colorscale="ylorrd",
+                    cmid=0,
+                    cmin=-v_limit,
+                    cmax=v_limit,
+                    colorbar=dict(
+                        title="SHAP",
+                        x=1.02,
+                        len=0.45,
+                        y=0.75 if i == 0 else 0.25,
+                    )
+                    if i == 0
+                    else None,
+                    showscale=True if i == 0 else False,
+                ),
+                text=[f"SHAP: {val:.4f}" for val in s_val_smoothed],
+                name=channels[i],
+            ),
+            row=i + 1,
+            col=1,
+        )
+
+    fig.update_layout(
+        height=800,
+        width=1000,
+        title_text=title,
+        template="plotly_white",
+        showlegend=False,
+    )
+
+    fig.update_xaxes(title_text="Vzorky (Samples)", row=2, col=1)
     fig.show()
