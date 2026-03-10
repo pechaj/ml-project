@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 import numpy as np
 import torch
@@ -54,14 +55,13 @@ def create_prediction_viz(viz_data, model, device="cuda" if torch.cuda.is_availa
             base_color = "0, 200, 100" if is_correct else "255, 0, 0"
             
             # Grafické oddělení překryvu (Sudá/Lichá okna)
-            y_val = [0, 0, 1, 1, 0] if i % 2 == 0 else [0, 0, 0.6, 0.6, 0]
-            opacity = 0.3 if i % 2 == 0 else 0.6
+            y_val = [0, 0, 1, 1, 0] if i % 2 == 0 else [0, 0, -1, -1, 0]
             
             fig.add_trace(go.Scatter(
                 x=[t0, t1, t1, t0, t0], 
                 y=y_val,
                 fill="toself", 
-                fillcolor=f"rgba({base_color}, {opacity})",
+                fillcolor=f"rgba({base_color}, 0.6)",
                 line=dict(width=0.5, color="rgba(0,0,0,0.2)"),
                 name=f"Win {i}",
                 visible=False,
@@ -96,7 +96,7 @@ def create_prediction_viz(viz_data, model, device="cuda" if torch.cuda.is_availa
         template="plotly_white",
         yaxis=dict(title="EKG [mV]"),
         yaxis2=dict(title="EDA [μS]", overlaying="y", side="right"),
-        yaxis3=dict(range=[0, 1.1], showticklabels=False, fixedrange=True)
+        yaxis3=dict(range=[-1, 1], showticklabels=False, fixedrange=True)
     )
 
     if all_steps:
@@ -161,7 +161,7 @@ def plot_signal_with_shap(
                 marker=dict(
                     size=6,
                     color=s_val_smoothed,
-                    colorscale="ylorrd",
+                    colorscale="rainbow",
                     cmid=0,
                     cmin=-v_limit,
                     cmax=v_limit,
@@ -191,4 +191,26 @@ def plot_signal_with_shap(
     )
 
     fig.update_xaxes(title_text="Vzorky (Samples)", row=2, col=1)
+    fig.show()
+    
+def plot_correlation_distribution(correlations):
+    df = pd.DataFrame({'Spearman_Correlation': correlations})
+    
+    fig = px.histogram(
+        df, x='Spearman_Correlation',
+        nbins=20,
+        title='Distribuce závislosti mezi SHAP(EKG) a SHAP(EDA)',
+        labels={'Spearman_Correlation': 'Spearmanův korelační koeficient'},
+        color_discrete_sequence=['#636EFA'],
+        template='plotly_white',
+        marginal="box" # Přidá boxplot nad histogram pro lepší přehled o outlier-ech
+    )
+    
+    fig.add_vline(x=0, line_dash="dash", line_color="red", annotation_text="Nulová závislost")
+    
+    fig.update_layout(
+        xaxis_range=[-1, 1], # Korelace je vždy mezi -1 a 1
+        width=800,
+        height=500
+    )
     fig.show()
